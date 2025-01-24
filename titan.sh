@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Установка утилиты dialog, если она не установлена
-if ! command -v dialog &>/dev/null; then
-    echo "Installing dialog utility..."
-    sudo apt-get install -y dialog || { echo "Failed to install dialog."; exit 1; }
-fi
-
 # Обновление и апгрейд системы
 echo "Updating and upgrading system packages..."
 sudo apt-get update && sudo apt-get upgrade -y || { echo "Failed to update and upgrade system."; exit 1; }
@@ -46,8 +40,9 @@ docker pull nezha123/titan-edge || { echo "Failed to pull Docker image."; exit 1
 echo "Creating configuration directory..."
 mkdir -p ~/.titanedge || { echo "Failed to create configuration directory."; exit 1; }
 
-# Запрос на ввод ключа устройства с использованием dialog
-DEVICE_HASH_KEY=$(dialog --inputbox "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):" 10 50 3>&1 1>&2 2>&3)
+# Запрос на ввод ключа устройства
+echo "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):"
+read DEVICE_HASH_KEY
 
 # Проверка, что ключ не пустой
 if [ -z "$DEVICE_HASH_KEY" ]; then
@@ -55,7 +50,7 @@ if [ -z "$DEVICE_HASH_KEY" ]; then
     exit 1
 fi
 
-# Привязка устройства с использованием старого метода (через Docker run)
+# Привязка устройства с использованием введенного ключа
 echo "Binding device to API endpoint with your key..."
 docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$DEVICE_HASH_KEY https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
 
