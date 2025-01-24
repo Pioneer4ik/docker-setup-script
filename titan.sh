@@ -1,33 +1,44 @@
 #!/bin/bash
 
-# Устанавливаем необходимые пакеты
+# Обновление системы
+echo "Обновление системы..."
+sudo apt-get update && sudo apt-get upgrade -y
+
+# Установка необходимых пакетов
+echo "Установка необходимых пакетов..."
 sudo apt install -y ca-certificates curl gnupg lsb-release 
 
-# Добавляем ключ Docker
+# Добавление ключа для Docker
+echo "Добавление ключа Docker..."
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-# Добавляем репозиторий Docker
+# Добавление репозитория Docker
+echo "Добавление репозитория Docker..."
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Обновляем пакеты и устанавливаем Docker
+# Установка Docker
+echo "Установка Docker..."
 sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io
 
-# Добавляем пользователя в группу Docker
+# Добавление пользователя в группу Docker
+echo "Добавление текущего пользователя в группу Docker..."
 sudo usermod -aG docker $USER
 newgrp docker
 
-# Загружаем образ Docker
+# Установка и настройка Titan Edge
+echo "Установка Titan Edge..."
 docker pull nezha123/titan-edge
-
-# Создаем директорию для Titan Edge
-mkdir ~/.titanedge
-
-# Запускаем контейнер Docker
+mkdir -p ~/.titanedge
 docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
 
-# Последняя команда с возможностью изменения ключа
-echo "Введите свой ключ для последней команды:"
-read custom_key
+# Последняя команда: Запрос биндинга
+echo "Создаём команду для биндинга. Измените ключ '--hash' в bind_command.sh, если это нужно."
+cat <<EOL > bind_command.sh
+#!/bin/bash
+docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=ВАШ_КЛЮЧ https://api-test1.container1.titannet.io/api/v2/device/binding
+EOL
 
-# Выполняем команду с введенным ключом
-docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash="$custom_key" https://api-test1.container1.titannet.io/api/v2/device/binding
+# Делаем скрипт исполняемым
+chmod +x bind_command.sh
+
+echo "Скрипт завершён. Чтобы выполнить биндинг, запустите ./bind_command.sh после изменения ключа."
