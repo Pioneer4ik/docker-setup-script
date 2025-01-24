@@ -1,137 +1,31 @@
 #!/bin/bash
 
-download_container() {
-  if [ -d "$HOME/container" ] || docker ps -q -f name=titan-edge-container; then
-    echo 'Контейнер уже существует. Установка невозможна. Выберите удалить контейнер или выйти из скрипта.'
-    return
-  fi
+# Устанавливаем необходимые пакеты
+sudo apt install -y ca-certificates curl gnupg lsb-release 
 
-  echo 'Начинаю установку контейнера...'
+# Добавляем ключ Docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-  read -p "Введите ваш ключ устройства: " DEVICE_KEY_LOCAL
+# Добавляем репозиторий Docker
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-  sudo apt update -y && sudo apt upgrade -y
-  sudo apt-get install make screen build-essential software-properties-common curl git nano jq docker.io -y
+# Обновляем пакеты и устанавливаем Docker
+sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io
 
-  cd $HOME
+# Добавляем пользователя в группу Docker
+sudo usermod -aG docker $USER
+newgrp docker
 
-  sudo docker run -d --name titan-edge-container \
-    -e DEVICE_KEY="$DEVICE_KEY_LOCAL" \
-    titan-edge:latest
+# Загружаем образ Docker
+docker pull nezha123/titan-edge
 
-  echo "Контейнер titan-edge запущен с ключом устройства $DEVICE_KEY_LOCAL."
-}
+# Создаем директорию для Titan Edge
+mkdir ~/.titanedge
 
-check_logs() {
-  if docker ps -q -f name=titan-edge-container; then
-    docker logs titan-edge-container
-  else
-    echo "Контейнер titan-edge не найден."
-  fi
-}
+# Запускаем контейнер Docker
+docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
 
-change_key() {
-  echo 'Начинаю изменение ключа устройства...'
-
-  if ! docker ps -q -f name=titan-edge-container; then
-    echo 'Контейнер не найден. Установите контейнер.'
-    return
-  fi
-
-  read -p "Введите новый ключ устройства: " NEW_DEVICE_KEY
-
-  docker stop titan-edge-container
-  docker rm titan-edge-container
-
-  sudo docker run -d --name titan-edge-container \
-    -e DEVICE_KEY="$NEW_DEVICE_KEY" \
-    titan-edge:latest
-
-  echo "Контейнер перезапущен с новым ключом устройства $NEW_DEVICE_KEY."
-}
-
-stop_container() {
-  echo 'Начинаю остановку контейнера...'
-
-  if docker ps -q -f name=titan-edge-container; then
-    docker stop titan-edge-container
-    echo "Контейнер titan-edge остановлен."
-  else
-    echo "Контейнер titan-edge не найден."
-  fi
-}
-
-delete_container() {
-  echo 'Начинаю удаление контейнера...'
-
-  if docker ps -q -f name=titan-edge-container; then
-    docker stop titan-edge-container
-    docker rm titan-edge-container
-    echo "Контейнер titan-edge был удален."
-  else
-    echo "Контейнер titan-edge не найден."
-  fi
-}
-
-update_container() {
-  echo 'Начинаю обновление контейнера...'
-
-  if ! docker ps -q -f name=titan-edge-container; then
-    echo 'Контейнер не найден. Установите контейнер.'
-    return
-  fi
-
-  docker pull titan-edge:latest
-
-  docker stop titan-edge-container
-  docker rm titan-edge-container
-
-  docker run -d --name titan-edge-container titan-edge:latest
-
-  echo "Контейнер titan-edge был обновлен и запущен."
-}
-
-exit_from_script() {
-  exit 0
-}
-
-while true; do
-  echo -e "\n\nМеню:"
-  echo "1. 🚀 Установить контейнер"
-  echo "2. 📋 Проверить логи контейнера"
-  echo "3. 🔑 Изменить ключ устройства"
-  echo "4. 🛑 Остановить контейнер"
-  echo "5. 🗑️ Удалить контейнер"
-  echo "6. ✅ Обновить контейнер"
-  echo -e "7. 🚪 Выйти из скрипта\n"
-
-  read -p "Выберите пункт меню: " choice
-  echo "Вы выбрали: $choice"  # Отладочный вывод
-  
-  case $choice in
-    1)
-      download_container
-      ;;
-    2)
-      check_logs
-      ;;
-    3)
-      change_key
-      ;;
-    4)
-      stop_container
-      ;;
-    5)
-      delete_container
-      ;;
-    6)
-      update_container
-      ;;
-    7)
-      exit_from_script
-      ;;
-    *)
-      echo "Неверный пункт. Пожалуйста, выберите правильную цифру в меню."
-      ;;
-  esac
-done
+# Последняя команда с возможностью изменения ключа
+echo "Введите свой ключ для последней команды:"
+read custom_key
+docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$custom_key https://api-test1.container1.titannet.io/api/v2/device/binding
