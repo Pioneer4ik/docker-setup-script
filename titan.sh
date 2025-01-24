@@ -40,17 +40,17 @@ docker pull nezha123/titan-edge || { echo "Failed to pull Docker image."; exit 1
 echo "Creating configuration directory..."
 mkdir -p ~/.titanedge || { echo "Failed to create configuration directory."; exit 1; }
 
-# Запрос на ввод ключа устройства
-echo "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):"
-read -r DEVICE_HASH_KEY
-
-# Проверка, что ключ не пустой
-if [ -z "$DEVICE_HASH_KEY" ]; then
-    echo "Ошибка: ключ устройства не был введен. Пожалуйста, введите ключ."
-    exit 1
-else
-    echo "Вы ввели ключ: $DEVICE_HASH_KEY"
-fi
+# Принудительное ожидание ввода ключа устройства
+while true; do
+    echo "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):"
+    read -r DEVICE_HASH_KEY
+    if [ -z "$DEVICE_HASH_KEY" ]; then
+        echo "Ошибка: ключ устройства не был введен. Пожалуйста, введите ключ."
+    else
+        echo "Вы ввели ключ: $DEVICE_HASH_KEY"
+        break
+    fi
+done
 
 # Привязка устройства с использованием введенного ключа
 echo "Binding device to API endpoint with your key..."
