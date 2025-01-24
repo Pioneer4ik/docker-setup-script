@@ -29,9 +29,8 @@ sudo systemctl enable docker
 echo "Adding current user to the Docker group..."
 sudo usermod -aG docker $USER || { echo "Failed to add user to Docker group."; exit 1; }
 
-# Переключение группы (чтобы не выходить из системы)
-echo "Switching to Docker group..."
-newgrp docker || { echo "Failed to switch to Docker group."; exit 1; }
+# Пожалуйста, перезапустите систему или выйдите из текущей сессии и войдите снова, чтобы применить изменения в группе Docker.
+echo "Please log out and log back in, or reboot your system to apply Docker group changes."
 
 # Скачивание Docker-образа
 echo "Pulling Docker image nezha123/titan-edge..."
