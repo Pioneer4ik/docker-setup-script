@@ -1,14 +1,19 @@
 #!/bin/bash
 
-# Запрос на ввод ключа устройства
-echo "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):"
-read DEVICE_HASH_KEY
+# Установка утилиты dialog, если она не установлена
+if ! command -v dialog &>/dev/null; then
+    echo "Installing dialog utility..."
+    sudo apt-get install -y dialog || { echo "Failed to install dialog."; exit 1; }
+fi
+
+# Запрос на ввод ключа устройства с использованием dialog
+DEVICE_HASH_KEY=$(dialog --inputbox "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):" 10 50 3>&1 1>&2 2>&3)
 
 # Проверка, что ключ не пустой
-while [ -z "$DEVICE_HASH_KEY" ]; do
+if [ -z "$DEVICE_HASH_KEY" ]; then
     echo "Ошибка: ключ устройства не был введен. Пожалуйста, введите ключ."
-    read DEVICE_HASH_KEY
-done
+    exit 1
+fi
 
 # Обновление и апгрейд системы
 echo "Updating and upgrading system packages..."
