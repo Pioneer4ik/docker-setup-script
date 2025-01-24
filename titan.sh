@@ -55,9 +55,9 @@ if [ -z "$DEVICE_HASH_KEY" ]; then
     exit 1
 fi
 
-# Привязка устройства с использованием введенного ключа
+# Привязка устройства с использованием старого метода (через Docker run)
 echo "Binding device to API endpoint with your key..."
-docker run --rm -T -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$DEVICE_HASH_KEY https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
+docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$DEVICE_HASH_KEY https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
 
 # Запуск Docker-контейнера
 echo "Running Docker container..."
