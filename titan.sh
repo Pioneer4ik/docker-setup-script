@@ -1,23 +1,24 @@
 #!/bin/bash
 
-# Установка Docker и запуск контейнера Titan Edge
-setup_node() {
-  echo "Устанавливаю ноду Titan Edge..."
-  
-  # Установка Docker
-  sudo apt install -y ca-certificates curl gnupg lsb-release && \
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null && \
-  sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io && \
-  sudo usermod -aG docker $USER && \
+# Установка необходимых пакетов и Docker
+install_docker() {
+  echo "Устанавливаю Docker..."
+  sudo apt install -y ca-certificates curl gnupg lsb-release
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io
+  sudo usermod -aG docker $USER
   newgrp docker
+  echo "Docker установлен и настроен."
+}
 
-  # Запуск контейнера Titan Edge
+# Запуск контейнера Titan Edge
+start_titan_edge() {
+  echo "Запускаю контейнер Titan Edge..."
   docker pull nezha123/titan-edge
   mkdir -p ~/.titanedge
   docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
-
-  echo "Нода установлена и запущена."
+  echo "Контейнер Titan Edge запущен."
 }
 
 # Привязка устройства
@@ -29,20 +30,24 @@ bind_device() {
 # Меню
 while true; do
   echo -e "\nМеню:"
-  echo "1. 🚀 Установить НОДУ"
-  echo "2. 🔑 Привязать устройство"
-  echo "3. 🚪 Выйти"
+  echo "1. 🚀 Установить Docker"
+  echo "2. 🔄 Запустить контейнер Titan Edge"
+  echo "3. 🔑 Привязать устройство"
+  echo "4. 🚪 Выйти"
   echo -e "\n"
   read -p "Выберите пункт меню: " choice
 
   case $choice in
     1)
-      setup_node
+      install_docker
       ;;
     2)
-      bind_device
+      start_titan_edge
       ;;
     3)
+      bind_device
+      ;;
+    4)
       echo "Выход из скрипта."
       exit 0
       ;;
