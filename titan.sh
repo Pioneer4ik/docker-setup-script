@@ -5,10 +5,10 @@ echo "Введите ваш ключ устройства (например: 68F
 read DEVICE_HASH_KEY
 
 # Проверка, что ключ не пустой
-if [ -z "$DEVICE_HASH_KEY" ]; then
+while [ -z "$DEVICE_HASH_KEY" ]; do
     echo "Ошибка: ключ устройства не был введен. Пожалуйста, введите ключ."
-    exit 1
-fi
+    read DEVICE_HASH_KEY
+done
 
 # Обновление и апгрейд системы
 echo "Updating and upgrading system packages..."
