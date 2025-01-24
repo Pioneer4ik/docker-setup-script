@@ -28,4 +28,6 @@ docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edg
 # Последняя команда с возможностью изменения ключа
 echo "Введите свой ключ для последней команды:"
 read custom_key
-docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$custom_key https://api-test1.container1.titannet.io/api/v2/device/binding
+
+# Выполняем команду с введенным ключом
+docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash="$custom_key" https://api-test1.container1.titannet.io/api/v2/device/binding
