@@ -42,17 +42,19 @@ mkdir -p ~/.titanedge || { echo "Failed to create configuration directory."; exi
 
 # Запрос на ввод ключа устройства
 echo "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):"
-read DEVICE_HASH_KEY
+read -r DEVICE_HASH_KEY
 
 # Проверка, что ключ не пустой
 if [ -z "$DEVICE_HASH_KEY" ]; then
     echo "Ошибка: ключ устройства не был введен. Пожалуйста, введите ключ."
     exit 1
+else
+    echo "Вы ввели ключ: $DEVICE_HASH_KEY"
 fi
 
 # Привязка устройства с использованием введенного ключа
 echo "Binding device to API endpoint with your key..."
-docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$DEVICE_HASH_KEY https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
+docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash="$DEVICE_HASH_KEY" https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
 
 # Запуск Docker-контейнера
 echo "Running Docker container..."
