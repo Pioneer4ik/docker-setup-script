@@ -56,6 +56,6 @@ docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edg
 
 # Привязка устройства с использованием введенного ключа
 echo "Binding device to API endpoint with your key..."
-docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$DEVICE_HASH_KEY https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
+docker run --rm -T -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$DEVICE_HASH_KEY https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
 
 echo "Setup completed successfully."
