@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Запрос на ввод собственного ключа
+echo "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):"
+read DEVICE_HASH_KEY
+
+# Проверка, что ключ не пустой
+if [ -z "$DEVICE_HASH_KEY" ]; then
+    echo "Ошибка: ключ устройства не был введен. Пожалуйста, введите ключ."
+    exit 1
+fi
+
 # Обновление и апгрейд системы
 echo "Updating and upgrading system packages..."
 sudo apt-get update && sudo apt-get upgrade -y || { echo "Failed to update and upgrade system."; exit 1; }
@@ -40,15 +50,12 @@ docker pull nezha123/titan-edge || { echo "Failed to pull Docker image."; exit 1
 echo "Creating configuration directory..."
 mkdir -p ~/.titanedge || { echo "Failed to create configuration directory."; exit 1; }
 
-# Запрос на ввод собственного ключа
-read -p "Enter your device hash key: " DEVICE_HASH_KEY
-
 # Запуск Docker-контейнера
 echo "Running Docker container..."
 docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edge || { echo "Failed to run Docker container."; exit 1; }
 
-# Привязка устройства
-echo "Binding device to API endpoint..."
+# Привязка устройства с использованием введенного ключа
+echo "Binding device to API endpoint with your key..."
 docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$DEVICE_HASH_KEY https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
 
 echo "Setup completed successfully."
