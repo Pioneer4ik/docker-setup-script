@@ -1,81 +1,59 @@
 #!/bin/bash
 
-# Установка Docker-образа и конфигурация
-download_node() {
-  if docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
-    echo "Контейнер titan-edge уже существует. Установка невозможна. Удалите контейнер или выйдите из скрипта."
+download_container() {
+  if [ -d "$HOME/container" ] || docker ps -q -f name=titan-edge-container; then
+    echo 'Контейнер уже существует. Установка невозможна. Выберите удалить контейнер или выйти из скрипта.'
     return
   fi
 
-  echo "Начинаю установку контейнера..."
+  echo 'Начинаю установку контейнера...'
 
-  read -p "Введите ваш ключ устройства: " DEVICE_HASH_KEY
+  read -p "Введите ваш ключ устройства: " DEVICE_KEY_LOCAL
 
   sudo apt update -y && sudo apt upgrade -y
-  sudo apt-get install -y curl make screen build-essential
+  sudo apt-get install make screen build-essential software-properties-common curl git nano jq docker.io -y
 
-  echo "Скачиваю Docker-образ..."
-  docker pull nezha123/titan-edge || { echo "Ошибка при скачивании Docker-образа."; exit 1; }
+  cd $HOME
 
-  # Создание директории для конфигурации
-  mkdir -p ~/.titanedge || { echo "Ошибка при создании директории."; exit 1; }
+  sudo docker run -d --name titan-edge-container \
+    -e DEVICE_KEY="$DEVICE_KEY_LOCAL" \
+    titan-edge:latest
 
-  # Запуск контейнера
-  docker run --network=host -d -v ~/.titanedge:/root/.titanedge --name titan-edge-container nezha123/titan-edge || { echo "Ошибка при запуске контейнера."; exit 1; }
-
-  echo "Контейнер titan-edge запущен..."
+  echo "Контейнер titan-edge запущен с ключом устройства $DEVICE_KEY_LOCAL."
 }
 
-# Обновление контейнера
-update_node() {
-  if ! docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
-    echo "Контейнер titan-edge не найден. Установите контейнер перед обновлением."
+check_logs() {
+  if docker ps -q -f name=titan-edge-container; then
+    docker logs titan-edge-container
+  else
+    echo "Контейнер titan-edge не найден."
+  fi
+}
+
+change_key() {
+  echo 'Начинаю изменение ключа устройства...'
+
+  if ! docker ps -q -f name=titan-edge-container; then
+    echo 'Контейнер не найден. Установите контейнер.'
     return
   fi
 
-  echo "Начинаю обновление контейнера..."
-
-  read -p "Введите ваш ключ устройства: " DEVICE_HASH_KEY
+  read -p "Введите новый ключ устройства: " NEW_DEVICE_KEY
 
   docker stop titan-edge-container
   docker rm titan-edge-container
 
-  docker pull nezha123/titan-edge || { echo "Ошибка при скачивании Docker-образа."; exit 1; }
+  sudo docker run -d --name titan-edge-container \
+    -e DEVICE_KEY="$NEW_DEVICE_KEY" \
+    titan-edge:latest
 
-  docker run --network=host -d -v ~/.titanedge:/root/.titanedge --name titan-edge-container nezha123/titan-edge || { echo "Ошибка при запуске контейнера."; exit 1; }
-
-  echo "Контейнер titan-edge обновлен."
+  echo "Контейнер перезапущен с новым ключом устройства $NEW_DEVICE_KEY."
 }
 
-# Проверка логов
-check_logs() {
-  if ! docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
-    echo "Контейнер titan-edge не найден."
-    return
-  fi
+stop_container() {
+  echo 'Начинаю остановку контейнера...'
 
-  echo "Получаю логи контейнера..."
-  docker logs titan-edge-container --tail 100
-}
-
-# Изменение конфигурации (например, изменение ключа устройства)
-change_key() {
-  echo "Начинаю изменение ключа устройства..."
-
-  read -p "Введите новый ключ устройства: " NEW_DEVICE_HASH_KEY
-
-  # Здесь можно добавить логику изменения конфигурации внутри контейнера.
-  # Для примера, просто выводим новый ключ:
-  docker exec -it titan-edge-container bash -c "echo 'Новый ключ устройства: $NEW_DEVICE_HASH_KEY' > /root/.titanedge/key.txt"
-
-  echo "Ключ устройства был изменен."
-}
-
-# Остановка контейнера
-stop_node() {
-  echo "Начинаю остановку контейнера..."
-
-  if docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
+  if docker ps -q -f name=titan-edge-container; then
     docker stop titan-edge-container
     echo "Контейнер titan-edge остановлен."
   else
@@ -83,19 +61,36 @@ stop_node() {
   fi
 }
 
-# Удаление контейнера
-delete_node() {
-  echo "Начинаю удаление контейнера..."
+delete_container() {
+  echo 'Начинаю удаление контейнера...'
 
-  if docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
-    docker rm -f titan-edge-container
+  if docker ps -q -f name=titan-edge-container; then
+    docker stop titan-edge-container
+    docker rm titan-edge-container
     echo "Контейнер titan-edge был удален."
   else
     echo "Контейнер titan-edge не найден."
   fi
 }
 
-# Главное меню
+update_container() {
+  echo 'Начинаю обновление контейнера...'
+
+  if ! docker ps -q -f name=titan-edge-container; then
+    echo 'Контейнер не найден. Установите контейнер.'
+    return
+  fi
+
+  docker pull titan-edge:latest
+
+  docker stop titan-edge-container
+  docker rm titan-edge-container
+
+  docker run -d --name titan-edge-container titan-edge:latest
+
+  echo "Контейнер titan-edge был обновлен и запущен."
+}
+
 exit_from_script() {
   exit 0
 }
@@ -109,11 +104,13 @@ while true; do
   echo "5. 🗑️ Удалить контейнер"
   echo "6. ✅ Обновить контейнер"
   echo -e "7. 🚪 Выйти из скрипта\n"
-  read -p "Выберите пункт меню: " choice
 
+  read -p "Выберите пункт меню: " choice
+  echo "Вы выбрали: $choice"  # Отладочный вывод
+  
   case $choice in
     1)
-      download_node
+      download_container
       ;;
     2)
       check_logs
@@ -122,13 +119,13 @@ while true; do
       change_key
       ;;
     4)
-      stop_node
+      stop_container
       ;;
     5)
-      delete_node
+      delete_container
       ;;
     6)
-      update_node
+      update_container
       ;;
     7)
       exit_from_script
