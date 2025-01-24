@@ -1,44 +1,58 @@
 #!/bin/bash
 
-# Обновление системы
-echo "Обновление системы..."
-sudo apt-get update && sudo apt-get upgrade -y
+# Установка необходимых пакетов и Docker
+install_docker() {
+  echo "Устанавливаю Docker..."
+  sudo apt install -y ca-certificates curl gnupg lsb-release
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io
+  sudo usermod -aG docker $USER
+  newgrp docker
+  echo "Docker установлен и настроен."
+}
 
-# Установка необходимых пакетов
-echo "Установка необходимых пакетов..."
-sudo apt install -y ca-certificates curl gnupg lsb-release 
+# Запуск контейнера Titan Edge
+start_titan_edge() {
+  echo "Запускаю контейнер Titan Edge..."
+  docker pull nezha123/titan-edge
+  mkdir -p ~/.titanedge
+  docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
+  echo "Контейнер Titan Edge запущен."
+}
 
-# Добавление ключа для Docker
-echo "Добавление ключа Docker..."
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+# Привязка устройства
+bind_device() {
+  read -p "Введите ваш ключ для привязки устройства: " hash_key
+  docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=$hash_key https://api-test1.container1.titannet.io/api/v2/device/binding
+}
 
-# Добавление репозитория Docker
-echo "Добавление репозитория Docker..."
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+# Меню
+while true; do
+  echo -e "\nМеню:"
+  echo "1. 🚀 Установить Docker"
+  echo "2. 🔄 Запустить контейнер Titan Edge"
+  echo "3. 🔑 Привязать устройство"
+  echo "4. 🚪 Выйти"
+  echo -e "\n"
+  read -p "Выберите пункт меню: " choice
 
-# Установка Docker
-echo "Установка Docker..."
-sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io
-
-# Добавление пользователя в группу Docker
-echo "Добавление текущего пользователя в группу Docker..."
-sudo usermod -aG docker $USER
-newgrp docker
-
-# Установка и настройка Titan Edge
-echo "Установка Titan Edge..."
-docker pull nezha123/titan-edge
-mkdir -p ~/.titanedge
-docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
-
-# Последняя команда: Запрос биндинга
-echo "Создаём команду для биндинга. Измените ключ '--hash' в bind_command.sh, если это нужно."
-cat <<EOL > bind_command.sh
-#!/bin/bash
-docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash=ВАШ_КЛЮЧ https://api-test1.container1.titannet.io/api/v2/device/binding
-EOL
-
-# Делаем скрипт исполняемым
-chmod +x bind_command.sh
-
-echo "Скрипт завершён. Чтобы выполнить биндинг, запустите ./bind_command.sh после изменения ключа."
+  case $choice in
+    1)
+      install_docker
+      ;;
+    2)
+      start_titan_edge
+      ;;
+    3)
+      bind_device
+      ;;
+    4)
+      echo "Выход из скрипта."
+      exit 0
+      ;;
+    *)
+      echo "Неверный пункт. Пожалуйста, выберите правильный номер."
+      ;;
+  esac
+done
