@@ -52,12 +52,12 @@ while true; do
     fi
 done
 
-# Привязка устройства с использованием введенного ключа
-echo "Binding device to API endpoint with your key..."
-docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge bind --hash="$DEVICE_HASH_KEY" https://api-test1.container1.titannet.io/api/v2/device/binding || { echo "Failed to bind device to API."; exit 1; }
-
-# Запуск Docker-контейнера
+# Запуск контейнера с параметрами
 echo "Running Docker container..."
-docker run --network=host -d -v ~/.titanedge:/root/.titanedge nezha123/titan-edge || { echo "Failed to run Docker container."; exit 1; }
+docker run --network=host -d -v ~/.titanedge:/root/.titanedge --name titan-edge-container nezha123/titan-edge || { echo "Failed to run Docker container."; exit 1; }
+
+# Привязка устройства с использованием введенного ключа в работающем контейнере
+echo "Binding device to API endpoint with your key..."
+docker exec -it titan-edge-container bash -c "titan-edge bind --hash=\"$DEVICE_HASH_KEY\" https://api-test1.container1.titannet.io/api/v2/device/binding" || { echo "Failed to bind device to API."; exit 1; }
 
 echo "Setup completed successfully."
