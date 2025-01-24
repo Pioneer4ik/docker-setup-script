@@ -1,67 +1,140 @@
 #!/bin/bash
 
-# Обновление и апгрейд системы
-echo "Updating and upgrading system packages..."
-sudo apt-get update && sudo apt-get upgrade -y || { echo "Failed to update and upgrade system."; exit 1; }
+# Установка Docker-образа и конфигурация
+download_node() {
+  if docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
+    echo "Контейнер titan-edge уже существует. Установка невозможна. Удалите контейнер или выйдите из скрипта."
+    return
+  fi
 
-# Установка зависимостей
-echo "Installing required dependencies..."
-sudo apt install -y ca-certificates curl gnupg lsb-release || { echo "Failed to install dependencies."; exit 1; }
+  echo "Начинаю установку контейнера..."
 
-# Добавление GPG ключа Docker
-echo "Adding Docker GPG key..."
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg || { echo "Failed to add Docker GPG key."; exit 1; }
+  read -p "Введите ваш ключ устройства: " DEVICE_HASH_KEY
 
-# Добавление репозитория Docker
-echo "Adding Docker repository..."
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null || { echo "Failed to add Docker repository."; exit 1; }
+  sudo apt update -y && sudo apt upgrade -y
+  sudo apt-get install -y curl make screen build-essential
 
-# Установка Docker
-echo "Installing Docker..."
-sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io || { echo "Failed to install Docker."; exit 1; }
+  echo "Скачиваю Docker-образ..."
+  docker pull nezha123/titan-edge || { echo "Ошибка при скачивании Docker-образа."; exit 1; }
 
-# Проверка статуса Docker
-echo "Checking Docker status..."
-sudo systemctl is-active --quiet docker || { echo "Docker is not running. Attempting to start Docker..."; sudo systemctl start docker; }
-sudo systemctl enable docker
+  # Создание директории для конфигурации
+  mkdir -p ~/.titanedge || { echo "Ошибка при создании директории."; exit 1; }
 
-# Добавление текущего пользователя в группу Docker
-echo "Adding current user to the Docker group..."
-sudo usermod -aG docker $USER || { echo "Failed to add user to Docker group."; exit 1; }
+  # Запуск контейнера
+  docker run --network=host -d -v ~/.titanedge:/root/.titanedge --name titan-edge-container nezha123/titan-edge || { echo "Ошибка при запуске контейнера."; exit 1; }
 
-# Пожалуйста, перезапустите систему или выйдите из текущей сессии и войдите снова, чтобы применить изменения в группе Docker.
-echo "Please log out and log back in, or reboot your system to apply Docker group changes."
+  echo "Контейнер titan-edge запущен..."
+}
 
-# Скачивание Docker-образа
-echo "Pulling Docker image nezha123/titan-edge..."
-docker pull nezha123/titan-edge || { echo "Failed to pull Docker image."; exit 1; }
+# Обновление контейнера
+update_node() {
+  if ! docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
+    echo "Контейнер titan-edge не найден. Установите контейнер перед обновлением."
+    return
+  fi
 
-# Создание директории для конфигурации
-echo "Creating configuration directory..."
-mkdir -p ~/.titanedge || { echo "Failed to create configuration directory."; exit 1; }
+  echo "Начинаю обновление контейнера..."
 
-# Принудительное ожидание ввода ключа устройства
+  read -p "Введите ваш ключ устройства: " DEVICE_HASH_KEY
+
+  docker stop titan-edge-container
+  docker rm titan-edge-container
+
+  docker pull nezha123/titan-edge || { echo "Ошибка при скачивании Docker-образа."; exit 1; }
+
+  docker run --network=host -d -v ~/.titanedge:/root/.titanedge --name titan-edge-container nezha123/titan-edge || { echo "Ошибка при запуске контейнера."; exit 1; }
+
+  echo "Контейнер titan-edge обновлен."
+}
+
+# Проверка логов
+check_logs() {
+  if ! docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
+    echo "Контейнер titan-edge не найден."
+    return
+  fi
+
+  echo "Получаю логи контейнера..."
+  docker logs titan-edge-container --tail 100
+}
+
+# Изменение конфигурации (например, изменение ключа устройства)
+change_key() {
+  echo "Начинаю изменение ключа устройства..."
+
+  read -p "Введите новый ключ устройства: " NEW_DEVICE_HASH_KEY
+
+  # Здесь можно добавить логику изменения конфигурации внутри контейнера.
+  # Для примера, просто выводим новый ключ:
+  docker exec -it titan-edge-container bash -c "echo 'Новый ключ устройства: $NEW_DEVICE_HASH_KEY' > /root/.titanedge/key.txt"
+
+  echo "Ключ устройства был изменен."
+}
+
+# Остановка контейнера
+stop_node() {
+  echo "Начинаю остановку контейнера..."
+
+  if docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
+    docker stop titan-edge-container
+    echo "Контейнер titan-edge остановлен."
+  else
+    echo "Контейнер titan-edge не найден."
+  fi
+}
+
+# Удаление контейнера
+delete_node() {
+  echo "Начинаю удаление контейнера..."
+
+  if docker ps -a --filter "name=titan-edge-container" | grep -q "titan-edge-container"; then
+    docker rm -f titan-edge-container
+    echo "Контейнер titan-edge был удален."
+  else
+    echo "Контейнер titan-edge не найден."
+  fi
+}
+
+# Главное меню
+exit_from_script() {
+  exit 0
+}
+
 while true; do
-    echo "Введите ваш ключ устройства (например: 68FA03DF-0D1F-48E0-8E63-798918441317):"
-    read -r DEVICE_HASH_KEY
-    if [ -z "$DEVICE_HASH_KEY" ]; then
-        echo "Ошибка: ключ устройства не был введен. Пожалуйста, введите ключ."
-    else
-        echo "Вы ввели ключ: $DEVICE_HASH_KEY"
-        break
-    fi
+  echo -e "\n\nМеню:"
+  echo "1. 🚀 Установить контейнер"
+  echo "2. 📋 Проверить логи контейнера"
+  echo "3. 🔑 Изменить ключ устройства"
+  echo "4. 🛑 Остановить контейнер"
+  echo "5. 🗑️ Удалить контейнер"
+  echo "6. ✅ Обновить контейнер"
+  echo -e "7. 🚪 Выйти из скрипта\n"
+  read -p "Выберите пункт меню: " choice
+
+  case $choice in
+    1)
+      download_node
+      ;;
+    2)
+      check_logs
+      ;;
+    3)
+      change_key
+      ;;
+    4)
+      stop_node
+      ;;
+    5)
+      delete_node
+      ;;
+    6)
+      update_node
+      ;;
+    7)
+      exit_from_script
+      ;;
+    *)
+      echo "Неверный пункт. Пожалуйста, выберите правильную цифру в меню."
+      ;;
+  esac
 done
-
-# Запуск контейнера с параметрами
-echo "Running Docker container..."
-docker run --network=host -d -v ~/.titanedge:/root/.titanedge --name titan-edge-container nezha123/titan-edge || { echo "Failed to run Docker container."; exit 1; }
-
-# Ждем несколько секунд, чтобы контейнер успел запуститься
-echo "Waiting for the container to start..."
-sleep 10
-
-# Привязка устройства с использованием введенного ключа в работающем контейнере
-echo "Binding device to API endpoint with your key..."
-docker exec -it titan-edge-container bash -c "titan-edge bind --hash=\"$DEVICE_HASH_KEY\" https://api-test1.container1.titannet.io/api/v2/device/binding" || { echo "Failed to bind device to API."; exit 1; }
-
-echo "Setup completed successfully."
