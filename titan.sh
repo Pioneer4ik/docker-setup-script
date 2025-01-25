@@ -9,6 +9,7 @@ install_docker() {
   sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io
   sudo usermod -aG docker $USER
   newgrp docker
+  bash titan.sh
   
   echo "Docker установлен и настроен."
 }
